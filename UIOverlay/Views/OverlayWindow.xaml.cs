@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Reactive.Disposables;
 using System.Windows.Interop;
-using Core;
-using Domain;
 using ReactiveUI;
+using Splat;
 using UIOverlay.ViewModels;
 using Vanara.PInvoke;
 
@@ -16,12 +15,9 @@ namespace UIOverlay.Views
     {
         public OverlayWindow()
         {
-            var desktopService = new DesktopService();
-
-            var wm = new Swim(desktopService, null);
-
-            ViewModel = new OverlayWindowViewModel(wm);
             InitializeComponent();
+            
+            ViewModel = Locator.Current.GetService<OverlayWindowViewModel>();
             this.WhenActivated(disposableRegistration =>
             {
                 this.OneWayBind(
@@ -37,15 +33,6 @@ namespace UIOverlay.Views
                         view => view.StatusBorder.Visibility)
                     .DisposeWith(disposableRegistration);
             });
-
-            /*
-            HotkeyManager.Current.AddOrReplace("NextWs", Key.Y, ModifierKeys.Control | ModifierKeys.Alt,
-                (s, e) => wm.NextWorkSpace());
-            HotkeyManager.Current.AddOrReplace("PrevWs", Key.U, ModifierKeys.Control | ModifierKeys.Alt,
-                (s, e) => wm.PrevWorkSpace());
-            HotkeyManager.Current.AddOrReplace("Close", Key.W, ModifierKeys.Control | ModifierKeys.Alt,
-                (s, e) => desktopService.GetForegroundWindow().MatchSome(w => w.Close()));
-                */
         }
 
         protected override void OnSourceInitialized(EventArgs e)

@@ -15,6 +15,7 @@ namespace Core.Modules.WorkspaceModule
     public class WorkSpaceManager
     {
         private readonly Subject<WorkSpace> _whenWorkSpaceChanged;
+        private readonly Subject<ManagedWindow> _whenWindowChanged;
         private readonly List<WorkSpace> _workSpaces;
 
         public WorkSpaceManager(
@@ -24,6 +25,7 @@ namespace Core.Modules.WorkspaceModule
         )
         {
             _whenWorkSpaceChanged = new Subject<WorkSpace>();
+            _whenWindowChanged = new Subject<ManagedWindow>();
             _workSpaces = new List<WorkSpace>();
 
             configProvider.WhenConfigChanged.Subscribe(config =>
@@ -41,7 +43,7 @@ namespace Core.Modules.WorkspaceModule
             .AsObservable()
             .DistinctUntilChanged();
 
-        public IObservable<IWindow> WhenWindowChanged { get; set; }
+        public IObservable<ManagedWindow> WhenWindowChanged => _whenWindowChanged.AsObservable();
 
         public WorkSpace CurrentWorkSpace { get; private set; }
 
@@ -105,8 +107,13 @@ namespace Core.Modules.WorkspaceModule
             var startIndex = _workSpaces.IndexOf(from);
             var step = isInverse ? -1 : 1;
 
-            for (int index = startIndex, count = 0; count < _workSpaces.Count; index += step, count++)
+            for (int index = startIndex + step, count = 0; count < _workSpaces.Count; index += step, count++)
             {
+                if (index < 0)
+                {
+                    index += _workSpaces.Count; // Correct the negative index
+                }
+
                 index %= _workSpaces.Count; // Ensure index is within the bounds
                 yield return _workSpaces[index];
             }

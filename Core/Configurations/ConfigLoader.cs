@@ -3,21 +3,17 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
-using System.Security;
-using Core.Services;
 using Optional.Linq;
 using Utils;
 
 namespace Core.Configurations
 {
-    public class ConfigManager : IConfigProvider
+    public class ConfigLoader : IConfigProvider
     {
         private readonly ReplaySubject<SwimConfig> _whenConfigChanged;
         private readonly ConfigParser _parser;
 
-        public ConfigManager(
-            IConfigLocator configLocator,
-            IUserEventPublisher userEventPublisher)
+        public ConfigLoader(IConfigLocator configLocator)
         {
             _parser = new ConfigParser();
             _whenConfigChanged = new ReplaySubject<SwimConfig>(1);
@@ -25,12 +21,10 @@ namespace Core.Configurations
 
             InitParser();
 
-            var config = configLocator
+            configLocator
                 .FindConfig()
                 .Select(_parser.Parse)
-                .ValueOr(SwimConfig.Empty);
-
-            _whenConfigChanged.OnNext(config);
+                .MatchSome(_whenConfigChanged.OnNext);
         }
 
         public IObservable<SwimConfig> WhenConfigChanged => _whenConfigChanged.AsObservable();
@@ -43,10 +37,8 @@ namespace Core.Configurations
                 .GetTypes()
                 .Where(type => type
                     .GetInterfaces()
-                    .Contains(typeof(IModuleConfig<>)))
-                .ForEach(_parser.RegisterConfig<>());
-
-            _parser.RegisterConfig<>();
+                    .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IKeyBindingConfig<>)))
+                .ForEach(t => _parser.RegisterConfig(t.Name.Replace("Config", string.Empty), t));
         }
     }
 }

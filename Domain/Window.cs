@@ -1,5 +1,8 @@
 using System;
 using System.Diagnostics;
+using System.Reactive;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Text;
 using Optional;
 using Optional.Linq;
@@ -10,10 +13,12 @@ namespace Domain
 {
     public class Window  : IWindow
     {
+        private readonly Subject<Unit> _whenDestroyed;
         private readonly Lazy<Process> _lazyProcess;
 
         public Window(HWND handle)
         {
+            _whenDestroyed = new Subject<Unit>();
             Handle = handle;
 
             _lazyProcess = new Lazy<Process>(() =>
@@ -23,8 +28,10 @@ namespace Domain
             });
         }
 
-        public HWND Handle { get; }
+        public IObservable<Unit> WhenDestroyed => _whenDestroyed.AsObservable();
+
         public string ProcessName => _lazyProcess.Value.ProcessName;
+        internal HWND Handle { get; }
 
         public string GetTitle()
         {
@@ -87,26 +94,27 @@ namespace Domain
         {
             CloseWindow(Handle);
         }
-    }
 
-    public interface IWindow
-    {
-        string ProcessName { get; }
+        public override bool Equals(object obj)
+        {
+            if (obj is Window other)
+            {
+                return other.Handle.Equals(this.Handle);
+            }
 
-        string GetTitle();
-        string GetClassName();
-        Option<Window> GetOwner();
-        WindowStylesEx GetStyleEx();
+            return false;
+        }
 
-        void SetForeground();
-        
-        bool IsVisible();
+        public override int GetHashCode()
+        {
+            return Handle.GetHashCode();
+        }
 
-        void Minimize();
-        void Maximize();
-        void Normalize();
-        void Restore();
-        
-        void Close();
+        internal void OnDestroy()
+        {
+            _whenDestroyed.OnNext(Unit.Default);
+            _whenDestroyed.OnCompleted();
+            _whenDestroyed.Dispose();
+        }
     }
 }

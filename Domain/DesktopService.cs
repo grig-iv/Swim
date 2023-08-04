@@ -1,41 +1,128 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using Domain.WinHook;
 using Optional;
+using Optional.Collections;
 using Optional.Linq;
 using Vanara.PInvoke;
+using static Vanara.PInvoke.User32;
 
 namespace Domain
 {
     public class DesktopService : IDesktopService
     {
-        public IEnumerable<Window> GetWindows()
+        private readonly Subject<IWindow> _whenWindowCreated;
+        private readonly Subject<IWindow> _whenForegroundWindowChanged;
+        private readonly WinEventObservable _winEventObservable;
+        private readonly Dictionary<HWND, Window> _windows;
+        private readonly object _lock;
+
+        public DesktopService()
         {
-            var result = new List<Window>();
+            _lock = new object();
+            _whenWindowCreated = new Subject<IWindow>();
+            _whenForegroundWindowChanged = new Subject<IWindow>();
+            _windows = new Dictionary<HWND, Window>();
 
-            User32.EnumWindows((handle, _) =>
-            {
-                var window = new Window(handle);
-                if (!window.IsVisible() || window.GetOwner().HasValue)
-                    return true;
+            _winEventObservable = new WinEventObservable();
+            _winEventObservable.Subscribe(winEvent => HandleWinEvent(winEvent.Type, winEvent.Handle));
 
-                var styleEx = window.GetStyleEx();
-                var isToolWindow = styleEx.HasFlag(User32.WindowStylesEx.WS_EX_TOOLWINDOW);
-                if (isToolWindow)
-                    return true;
-
-                result.Add(new Window(handle));
-                return true;
-            }, IntPtr.Zero);
-
-            return result;
+            InitWindows();
         }
 
-        public Option<Window> GetForegroundWindow()
+        public IObservable<IWindow> WhenWindowCreated => _whenWindowCreated.AsObservable();
+        public IObservable<IWindow> WhenForegroundWindowChanged => _whenForegroundWindowChanged.AsObservable();
+
+        public IEnumerable<IWindow> GetWindows()
         {
-            return User32
-                .GetForegroundWindow()
+            lock (_lock)
+            {
+                return _windows.Values;
+            }
+        }
+
+        public Option<IWindow> GetForegroundWindow()
+        {
+            return User32.GetForegroundWindow()
                 .SomeWhen(hwnd => !hwnd.IsNull)
-                .Select(hwnd => new Window(hwnd));
+                .Select(h => new Window(h))
+                .Select(w => (IWindow) w);
+        }
+
+        private void HandleWinEvent(WinEventType eventType, HWND handle)
+        {
+            switch (eventType)
+            {
+                case WinEventType.WindowsCreated:
+                    WindowCreated(handle);
+                    break;
+                case WinEventType.WindowsDestroyed:
+                    WindowDestroyed(handle);
+                    break;
+                case WinEventType.WindowsSetForeground:
+                    break;
+            }
+        }
+
+        private void WindowCreated(HWND handle)
+        {
+            var window = new Window(handle);
+
+            lock (_lock)
+            {
+                _windows[handle] = window;
+            }
+
+            if (IsTopLevelDesktopWindow(window))
+                _whenWindowCreated.OnNext(window);
+        }
+
+        private void WindowDestroyed(HWND handle)
+        {
+            lock (_lock)
+            {
+                _windows
+                    .GetValueOrNone(handle)
+                    .MatchSome(window =>
+                    {
+                        window.OnDestroy();
+                        _windows.Remove(handle);
+                    });
+            }
+        }
+
+        private bool IsTopLevelDesktopWindow(Window window)
+        {
+            if (!window.IsVisible() || window.GetOwner().HasValue)
+                return false;
+
+            var styleEx = window.GetStyleEx();
+            var isToolWindow = styleEx.HasFlag(WindowStylesEx.WS_EX_TOOLWINDOW);
+            if (isToolWindow)
+                return false;
+
+            return true;
+        }
+
+        private void InitWindows()
+        {
+            lock (_lock)
+            {
+                EnumWindows((handle, _) =>
+                {
+                    _windows[handle] = new Window(handle);
+                    return true;
+                }, IntPtr.Zero);
+            }
+        }
+
+        public void Dispose()
+        {
+            _winEventObservable.Dispose();
+            _whenWindowCreated?.Dispose();
+            _whenForegroundWindowChanged?.Dispose();
         }
     }
 }

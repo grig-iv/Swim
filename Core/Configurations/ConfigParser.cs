@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Utils;
+using Optional;
+using Optional.Collections;
+using Optional.Linq;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
@@ -11,12 +13,14 @@ namespace Core.Configurations
     public class ConfigParser
     {
         private readonly Dictionary<string, Type> _configsTypesByNames;
-        private readonly Deserializer _deserializer;
+        private readonly IDeserializer _deserializer;
 
         public ConfigParser()
         {
             _configsTypesByNames = new Dictionary<string, Type>();
-            _deserializer = new Deserializer();
+            _deserializer = new DeserializerBuilder()
+                .WithTypeConverter(new ModifierKeysConverter())
+                .Build();
         }
 
         public void RegisterConfig(string blockName, Type configBlock)
@@ -28,25 +32,38 @@ namespace Core.Configurations
         {
             var reader = new StreamReader(stream);
             var yamlStream = new YamlStream();
-            
-            var configs = new Dictionary<Type, object>();
 
             yamlStream.Load(reader);
-            yamlStream.Documents
+
+            var configs = yamlStream.Documents
                 .Select(d => d.RootNode)
                 .OfType<YamlMappingNode>()
                 .SelectMany(n => n.Children)
-                .ForEach(child =>
-                {
-                    if (child.Key is YamlScalarNode scalarKey &&
-                        _configsTypesByNames.TryGetValue(scalarKey.Value, out var configType))
-                    {
-                        var config = _deserializer.Deserialize(child.Value.ToString(), configType);
-                        configs[config.GetType()] = config;
-                    }
-                });
+                .Select(child => ParseBlock(child.Key, child.Value))
+                .Values()
+                .ToDictionary(o => o.GetType());
 
             return new SwimConfig(configs);
+        }
+
+        private Option<object> ParseBlock(YamlNode keyNode, YamlNode valueNode)
+        {
+            if (keyNode is YamlScalarNode scalarNode)
+            {
+                return
+                    _configsTypesByNames
+                        .GetValueOrNone(scalarNode.Value ?? string.Empty)
+                        .Select(configType =>
+                        {
+                            var serializer = new Serializer();
+                            var valueNodeYaml = new StringWriter();
+                            serializer.Serialize(valueNodeYaml, valueNode);
+
+                            return _deserializer.Deserialize(valueNodeYaml.ToString(), configType);
+                        });
+            }
+            
+            return Option.None<object>();
         }
     }
 }

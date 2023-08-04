@@ -1,11 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Optional;
 
 namespace Domain
 {
-    public interface IDesktopService
+    public interface IDesktopService : IDisposable
     {
-        IEnumerable<Window> GetWindows();
-        Option<Window> GetForegroundWindow();
+        IObservable<IWindow> WhenWindowCreated { get; }
+        IObservable<IWindow> WhenForegroundWindowChanged { get; }
+
+        IEnumerable<IWindow> GetWindows();
+        Option<IWindow> GetForegroundWindow();
     }
 }

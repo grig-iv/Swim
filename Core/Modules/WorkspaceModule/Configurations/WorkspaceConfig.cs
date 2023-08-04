@@ -5,6 +5,6 @@ namespace Core.Modules.WorkspaceModule.Configurations
     public class WorkspaceConfig
     {
         public string Name { get; set; }
-        public IEnumerable<TargetWindow> Windws { get; set; }
+        public IEnumerable<TargetWindow> Windows { get; set; }
     }
 }

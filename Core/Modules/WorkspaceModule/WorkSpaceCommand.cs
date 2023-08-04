@@ -4,5 +4,7 @@
     {
         NextWorkSpace,
         PrevWorkSpace,
+        NextWindow,
+        PrevWindow,
     }
 }
