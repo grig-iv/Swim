@@ -7,38 +7,37 @@ using Splat.Microsoft.Extensions.DependencyInjection;
 using Splat.ModeDetection;
 using UIOverlay.ViewModels;
 
-namespace UIOverlay
+namespace UIOverlay;
+
+/// <summary>
+/// Interaction logic for App.xaml
+/// </summary>
+public partial class App
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App
+    public App()
     {
-        public App()
-        {
-            ModeDetector.OverrideModeDetector(Mode.Run);
+        ModeDetector.OverrideModeDetector(Mode.Run);
 
-            ConfigureServices();
-        }
+        ConfigureServices();
+    }
 
-        private void ConfigureServices()
-        {
-            var services = new ServiceCollection();
-            services.UseMicrosoftDependencyResolver();
+    private void ConfigureServices()
+    {
+        var services = new ServiceCollection();
+        services.UseMicrosoftDependencyResolver();
 
-            var resolver = Locator.CurrentMutable;
-            resolver.InitializeSplat();
-            resolver.InitializeReactiveUI();
-            resolver.RegisterViewsForViewModels(Assembly.GetCallingAssembly());
+        var resolver = Locator.CurrentMutable;
+        resolver.InitializeSplat();
+        resolver.InitializeReactiveUI();
+        resolver.RegisterViewsForViewModels(Assembly.GetCallingAssembly());
 
-            RegisterUiServices(services);
-            Swim.RegisterServices(services);
-        }
+        RegisterUiServices(services);
+        Swim.RegisterServices(services);
+    }
 
-        private void RegisterUiServices(IServiceCollection services)
-        {
+    private void RegisterUiServices(IServiceCollection services)
+    {
             
-            services.AddSingleton<OverlayWindowViewModel>(); 
-        }
+        services.AddSingleton<OverlayWindowViewModel>(); 
     }
 }

@@ -11,6 +11,7 @@
         <AssemblyName>Domain</AssemblyName>
         <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
         <FileAlignment>512</FileAlignment>
+        <LangVersion>default</LangVersion>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <PlatformTarget>AnyCPU</PlatformTarget>
@@ -128,6 +129,7 @@
         <Compile Include="IWindow.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Window.cs" />
+        <Compile Include="WindowState.cs" />
         <Compile Include="WinHook\WinEvent.cs" />
         <Compile Include="WinHook\WinEventObservable.cs" />
         <Compile Include="WinHook\WinEventType.cs" />

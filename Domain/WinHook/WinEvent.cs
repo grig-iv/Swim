@@ -1,10 +1,9 @@
 ﻿using Vanara.PInvoke;
 
-namespace Domain.WinHook
+namespace Domain.WinHook;
+
+public struct WinEvent
 {
-    public struct WinEvent
-    {
-        public WinEventType Type { get; set; }
-        public HWND Handle { get; set; }
-    }
+    public WinEventType Type { get; set; }
+    public HWND Handle { get; set; }
 }

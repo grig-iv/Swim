@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using Optional;
 
-namespace Domain
+namespace Domain;
+
+public interface IDesktopService : IDisposable
 {
-    public interface IDesktopService : IDisposable
-    {
-        IEnumerable<IWindow> GetWindows();
-        Option<IWindow> GetForegroundWindow();
-    }
+    IEnumerable<IWindow> GetWindows();
+    Option<IWindow> GetForegroundWindow();
 }

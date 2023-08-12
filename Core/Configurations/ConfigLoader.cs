@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Reflection;
-using Optional.Linq;
 using Utils;
 
 namespace Core.Configurations;
@@ -23,8 +22,14 @@ public class ConfigLoader : IConfigProvider
 
         configLocator
             .FindConfig()
-            .Select(_parser.Parse)
-            .MatchSome(_whenConfigChanged.OnNext);
+            .MatchSome(stream =>
+            {
+                using (stream)
+                {
+                    var config = _parser.Parse(stream);
+                    _whenConfigChanged.OnNext(config);
+                }
+            });
     }
 
     public IObservable<SwimConfig> WhenConfigChanged => _whenConfigChanged.AsObservable();

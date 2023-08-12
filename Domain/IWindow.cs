@@ -1,31 +1,29 @@
 ﻿using System;
 using System.Reactive;
 using Optional;
-using Vanara.PInvoke;
 
-namespace Domain
+namespace Domain;
+
+public interface IWindow
 {
-    public interface IWindow
-    {
-        IObservable<Unit> WhenDestroyed { get; }
+    IObservable<Unit> WhenDestroyed { get; }
         
-        string ProcessName { get; }
-        bool IsDestroyed { get; }
+    string ProcessName { get; }
+    bool IsDestroyed { get; }
 
-        string GetTitle();
-        string GetClassName();
-        Option<Window> GetOwner();
-        User32.WindowStylesEx GetStyleEx();
+    string GetTitle();
+    string GetClassName();
+    Option<IWindow> GetOwner();
+    WindowState GetState();
 
-        void SetForeground();
+    void SetForeground();
         
-        bool IsVisible();
+    bool IsVisible();
 
-        void Minimize();
-        void Maximize();
-        void Normalize();
-        void Restore();
+    void Minimize();
+    void Maximize();
+    void Normalize();
+    void Restore();
         
-        void Close();
-    }
+    void Close();
 }

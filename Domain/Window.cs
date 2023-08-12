@@ -9,115 +9,144 @@ using Optional.Linq;
 using Vanara.PInvoke;
 using static Vanara.PInvoke.User32;
 
-namespace Domain
+namespace Domain;
+
+public class Window : IWindow
 {
-    public class Window  : IWindow
+    private readonly Subject<Unit> _whenDestroyed;
+    private readonly Lazy<Process> _lazyProcess;
+
+    public Window(HWND handle)
     {
-        private readonly Subject<Unit> _whenDestroyed;
-        private readonly Lazy<Process> _lazyProcess;
+        _whenDestroyed = new Subject<Unit>();
+        Handle = handle;
 
-        public Window(HWND handle)
+        _lazyProcess = new Lazy<Process>(() =>
         {
-            _whenDestroyed = new Subject<Unit>();
-            Handle = handle;
+            GetWindowThreadProcessId(handle, out var processId);
+            return Process.GetProcessById((int) processId);
+        });
+    }
 
-            _lazyProcess = new Lazy<Process>(() =>
-            {
-                GetWindowThreadProcessId(handle, out var processId);
-                return Process.GetProcessById((int) processId);
-            });
-        }
+    public IObservable<Unit> WhenDestroyed => _whenDestroyed.AsObservable();
 
-        public IObservable<Unit> WhenDestroyed => _whenDestroyed.AsObservable();
+    public string ProcessName => _lazyProcess.Value.ProcessName;
+    public bool IsDestroyed { get; private set; }
+    internal HWND Handle { get; }
 
-        public string ProcessName => _lazyProcess.Value.ProcessName;
-        public bool IsDestroyed { get; private set; }
-        internal HWND Handle { get; }
+    public string GetTitle()
+    {
+        var titleLength = GetWindowTextLength(Handle);
+        var titleSb = new StringBuilder(titleLength + 1);
+        GetWindowText(Handle, titleSb, titleLength + 1);
+        return titleSb.ToString();
+    }
 
-        public string GetTitle()
-        {
-            var titleLength = GetWindowTextLength(Handle);
-            var titleSb = new StringBuilder(titleLength + 1);
-            GetWindowText(Handle, titleSb, titleLength + 1);
-            return titleSb.ToString();
-        }
+    public string GetClassName()
+    {
+        var sb = new StringBuilder(256);
+        User32.GetClassName(Handle, sb, sb.Capacity);
+        return sb.ToString();
+    }
 
-        public string GetClassName()
-        {
-            var sb = new StringBuilder(256);
-            User32.GetClassName(Handle, sb, sb.Capacity);
-            return sb.ToString();
-        }
+    public Option<IWindow> GetOwner()
+    {
+        return GetWindow(Handle, GetWindowCmd.GW_OWNER)
+            .SomeWhen(h => !h.IsNull)
+            .Select(h => (IWindow) new Window(h));
+    }
 
-        public Option<Window> GetOwner()
-        {
-            return GetWindow(Handle, GetWindowCmd.GW_OWNER)
-                .SomeWhen(h => !h.IsNull)
-                .Select(h => new Window(h));
-        }
-
-        public WindowStylesEx GetStyleEx()
-        {
-            return (WindowStylesEx) GetWindowLong(Handle, WindowLongFlags.GWL_EXSTYLE);
-        }
-
-        public void SetForeground()
-        {
-            SetForegroundWindow(Handle);
-        }
+    public WindowState GetState()
+    {
+        var placement = new WINDOWPLACEMENT();
+        GetWindowPlacement(Handle, ref placement);
         
-        public bool IsVisible()
+        switch (placement.showCmd)
         {
-            return IsWindowVisible(Handle);
+            case ShowWindowCommand.SW_SHOWMINIMIZED:
+            case ShowWindowCommand.SW_MINIMIZE:
+            case ShowWindowCommand.SW_SHOWMINNOACTIVE:
+            case ShowWindowCommand.SW_FORCEMINIMIZE:
+                return WindowState.Minimized;
+
+            case ShowWindowCommand.SW_SHOWMAXIMIZED:
+                return WindowState.Maximized;
+
+            case ShowWindowCommand.SW_HIDE:
+                return WindowState.Hidden;
+
+            case ShowWindowCommand.SW_SHOWNORMAL:
+            case ShowWindowCommand.SW_SHOWNOACTIVATE:
+            case ShowWindowCommand.SW_SHOW:
+            case ShowWindowCommand.SW_SHOWNA:
+            case ShowWindowCommand.SW_RESTORE:
+            case ShowWindowCommand.SW_SHOWDEFAULT:
+            default:
+                return WindowState.Normal;
+        }
+    }
+
+    public WindowStylesEx GetStyleEx()
+    {
+        return (WindowStylesEx) GetWindowLong(Handle, WindowLongFlags.GWL_EXSTYLE);
+    }
+
+    public void SetForeground()
+    {
+        SetForegroundWindow(Handle);
+    }
+
+    public bool IsVisible()
+    {
+        return IsWindowVisible(Handle);
+    }
+
+    public void Minimize()
+    {
+        ShowWindow(Handle, ShowWindowCommand.SW_SHOWMINIMIZED);
+    }
+
+    public void Maximize()
+    {
+        ShowWindow(Handle, ShowWindowCommand.SW_SHOWMAXIMIZED);
+    }
+
+    public void Normalize()
+    {
+        ShowWindow(Handle, ShowWindowCommand.SW_SHOWNORMAL);
+    }
+
+    public void Restore()
+    {
+        ShowWindow(Handle, ShowWindowCommand.SW_RESTORE);
+    }
+
+    public void Close()
+    {
+        CloseWindow(Handle);
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (obj is Window other)
+        {
+            return other.Handle.Equals(this.Handle);
         }
 
-        public void Minimize()
-        {
-            ShowWindow(Handle, ShowWindowCommand.SW_SHOWMINIMIZED);
-        }
+        return false;
+    }
 
-        public void Maximize()
-        {
-            ShowWindow(Handle, ShowWindowCommand.SW_SHOWMAXIMIZED);
-        }
+    public override int GetHashCode()
+    {
+        return Handle.GetHashCode();
+    }
 
-        public void Normalize()
-        {
-            ShowWindow(Handle, ShowWindowCommand.SW_SHOWNORMAL);
-        }
+    internal void OnDestroy()
+    {
+        IsDestroyed = true;
 
-        public void Restore()
-        {
-            ShowWindow(Handle, ShowWindowCommand.SW_RESTORE);
-        }
-
-        public void Close()
-        {
-            CloseWindow(Handle);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj is Window other)
-            {
-                return other.Handle.Equals(this.Handle);
-            }
-
-            return false;
-        }
-
-        public override int GetHashCode()
-        {
-            return Handle.GetHashCode();
-        }
-
-        internal void OnDestroy()
-        {
-            IsDestroyed = true;
-            
-            _whenDestroyed.OnNext(Unit.Default);
-            _whenDestroyed.OnCompleted();
-            _whenDestroyed.Dispose();
-        }
+        _whenDestroyed.OnNext(Unit.Default);
+        _whenDestroyed.OnCompleted();
+        _whenDestroyed.Dispose();
     }
 }

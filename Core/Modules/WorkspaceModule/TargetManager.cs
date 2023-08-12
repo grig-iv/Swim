@@ -1,4 +1,5 @@
-﻿using Core.Modules.WorkspaceModule.Configurations;
+﻿using System;
+using Core.Modules.WorkspaceModule.Configurations;
 using Domain;
 using Optional.Collections;
 
@@ -13,21 +14,33 @@ public class TargetManager
         _desktopService = desktopService;
         Target = target;
     }
-    
+
     public Target Target { get; }
 
     public bool TryActivate()
     {
-       var maybeWindow =  _desktopService
+        var maybeWindow = _desktopService
             .GetWindows()
             .FirstOrNone(Target.IsMatch);
-       
-       maybeWindow.MatchSome(window =>
-       {
-           window.SetForeground();
-           window.Maximize();
-       });
 
-       return maybeWindow.HasValue;
+        maybeWindow.MatchSome(window =>
+        {
+            window.SetForeground();
+            switch (window.GetState())
+            {
+                case WindowState.Minimized:
+                    window.Restore();
+                    break;
+                case WindowState.Maximized:
+                    window.Maximize();
+                    break;
+                case WindowState.Normal:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        });
+
+        return maybeWindow.HasValue;
     }
 }
