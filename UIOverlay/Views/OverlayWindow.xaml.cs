@@ -22,8 +22,8 @@ public partial class OverlayWindow
         {
             this.OneWayBind(
                     ViewModel,
-                    viewModel => viewModel.CurrentWorkSpaceConfig,
-                    view => view.WorkSpaceTextBox.Text,
+                    viewModel => viewModel.CurrentWorkspaceConfig,
+                    view => view.WorkspaceTextBox.Text,
                     workSpace => workSpace?.Name)
                 .DisposeWith(disposableRegistration);
                 

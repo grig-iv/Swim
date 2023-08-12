@@ -26,7 +26,7 @@ public class Swim
             .AddSingleton<IUserEventPublisher, UserEventPublisher>()
                 
             //modules
-            .AddSingleton<WorkSpaceManager>();
+            .AddSingleton<WorkspaceManager>();
     }
 
     public Option<TModule> GetModule<TModule>()

@@ -6,11 +6,11 @@ using Utils;
 
 namespace Core.Modules.WorkspaceModule;
 
-public class WorkSpace
+public class Workspace
 {
     private readonly CircularList<TargetManager> _orderedTargets;
 
-    public WorkSpace(WorkspaceConfig wsConfig, IDesktopService desktopService)
+    public Workspace(WorkspaceConfig wsConfig, IDesktopService desktopService)
     {
         Name = wsConfig.Name;
 

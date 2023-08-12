@@ -1,9 +1,9 @@
 ﻿namespace Core.Modules.WorkspaceModule;
 
-public enum WorkSpaceCommand
+public enum WorkspaceCommand
 {
-    NextWorkSpace,
-    PrevWorkSpace,
+    NextWorkspace,
+    PrevWorkspace,
     NextWindow,
     PrevWindow,
 }

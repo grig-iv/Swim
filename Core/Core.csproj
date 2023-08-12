@@ -98,9 +98,9 @@
         <Compile Include="Modules\WorkspaceModule\Configurations\WorkspaceManagerConfig.cs" />
         <Compile Include="Modules\WorkspaceModule\ManagedWindow.cs" />
         <Compile Include="Modules\WorkspaceModule\TargetManager.cs" />
-        <Compile Include="Modules\WorkspaceModule\WorkSpace.cs" />
-        <Compile Include="Modules\WorkspaceModule\WorkSpaceCommand.cs" />
-        <Compile Include="Modules\WorkspaceModule\WorkSpaceManager.cs" />
+        <Compile Include="Modules\WorkspaceModule\Workspace.cs" />
+        <Compile Include="Modules\WorkspaceModule\WorkspaceCommand.cs" />
+        <Compile Include="Modules\WorkspaceModule\WorkspaceManager.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Services\IMessageBus.cs" />
         <Compile Include="Swim.cs" />

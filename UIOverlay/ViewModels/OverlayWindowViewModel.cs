@@ -8,13 +8,13 @@ namespace UIOverlay.ViewModels;
 
 public class OverlayWindowViewModel : ReactiveObject
 {
-    public OverlayWindowViewModel(WorkSpaceManager workSpaceManager)
+    public OverlayWindowViewModel(WorkspaceManager workspaceManager)
     {
-        workSpaceManager
-            .WhenWorkSpaceChanged
-            .ToPropertyEx(this, x => x.CurrentWorkSpaceConfig);
+        workspaceManager
+            .WhenWorkspaceChanged
+            .ToPropertyEx(this, x => x.CurrentWorkspaceConfig);
 
-        workSpaceManager.WhenWorkSpaceChanged
+        workspaceManager.WhenWorkspaceChanged
             .Select(_ => Observable
                 .Return(true)
                 .Concat(Observable.Return(false).Delay(TimeSpan.FromSeconds(2))))
@@ -23,6 +23,6 @@ public class OverlayWindowViewModel : ReactiveObject
             .ToPropertyEx(this, x => x.IsVisible);
     }
 
-    [ObservableAsProperty] public WorkSpace CurrentWorkSpaceConfig { get; }
+    [ObservableAsProperty] public Workspace CurrentWorkspaceConfig { get; }
     [ObservableAsProperty] public bool IsVisible { get; }
 }

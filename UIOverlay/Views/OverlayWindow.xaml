@@ -26,7 +26,7 @@
             VerticalAlignment="Top"
             x:Name="StatusBorder">
             <StackPanel>
-                <TextBlock Foreground="White" x:Name="WorkSpaceTextBox" />
+                <TextBlock Foreground="White" x:Name="WorkspaceTextBox" />
             </StackPanel>
         </Border>
     </Grid>
