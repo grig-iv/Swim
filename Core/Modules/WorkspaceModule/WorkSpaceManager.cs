@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -8,115 +7,105 @@ using Core.Modules.WorkspaceModule.Configurations;
 using Core.Services;
 using Domain;
 using Optional.Collections;
+using Optional.Linq;
 using Utils;
 
-namespace Core.Modules.WorkspaceModule
+namespace Core.Modules.WorkspaceModule;
+
+public class WorkSpaceManager
 {
-    public class WorkSpaceManager
+    private readonly IDesktopService _desktopService;
+    private readonly Subject<WorkSpace> _whenWorkSpaceChanged;
+    private readonly CircularList<WorkSpace> _workSpaces;
+
+    public WorkSpaceManager(
+        IConfigProvider configProvider,
+        IDesktopService desktopService,
+        IUserEventPublisher userEventPublisher
+    )
     {
-        private readonly Subject<WorkSpace> _whenWorkSpaceChanged;
-        private readonly Subject<ManagedWindow> _whenWindowChanged;
-        private readonly List<WorkSpace> _workSpaces;
+        _desktopService = desktopService;
+        _whenWorkSpaceChanged = new Subject<WorkSpace>();
+        _workSpaces = new CircularList<WorkSpace>();
 
-        public WorkSpaceManager(
-            IConfigProvider configProvider,
-            IDesktopService desktopService,
-            IUserEventPublisher userEventPublisher
-        )
-        {
-            _whenWorkSpaceChanged = new Subject<WorkSpace>();
-            _whenWindowChanged = new Subject<ManagedWindow>();
-            _workSpaces = new List<WorkSpace>();
+        configProvider.WhenConfigChanged.Subscribe(config => UpdateWorkSpaces(config, desktopService));
 
-            configProvider.WhenConfigChanged.Subscribe(config =>
+        userEventPublisher
+            .OfType<WorkSpaceCommand>()
+            .Subscribe(HandleWorkSpaceCommand);
+    }
+
+    public IObservable<WorkSpace> WhenWorkSpaceChanged => _whenWorkSpaceChanged
+        .AsObservable()
+        .DistinctUntilChanged();
+
+    private WorkSpace LastWorkSpace { get; set; }
+
+    private void GoToNext()
+    {
+        var currWorkSpace = GetCurrentWorkSpace();
+
+        _workSpaces
+            .EnumerateForwardFrom(currWorkSpace)
+            .Skip(1)
+            .Append(currWorkSpace)
+            .FirstOrNone(ws => ws.TryActivate())
+            .MatchSome(ws =>
             {
-                UpdateWorkSpaces(config, desktopService);
-                UpdateCurrWorkSpace();
+                LastWorkSpace = ws;
+                _whenWorkSpaceChanged.OnNext(ws);
             });
+    }
 
-            userEventPublisher
-                .OfType<WorkSpaceCommand>()
-                .Subscribe(HandleWorkSpaceCommand);
-        }
+    private void GoToPrevious()
+    {
+        var currWorkSpace = GetCurrentWorkSpace();
 
-        public IObservable<WorkSpace> WhenWorkSpaceChanged => _whenWorkSpaceChanged
-            .AsObservable()
-            .DistinctUntilChanged();
-
-        public IObservable<ManagedWindow> WhenWindowChanged => _whenWindowChanged.AsObservable();
-
-        public WorkSpace CurrentWorkSpace { get; private set; }
-
-        public void GoToNext()
-        {
-            CurrentWorkSpace = EnumerateCircular(CurrentWorkSpace, isInverse: false)
-                .FirstOrNone(ws => ws.HasOpenWindows)
-                .ValueOr(CurrentWorkSpace);
-
-            CurrentWorkSpace.Activate();
-            _whenWorkSpaceChanged.OnNext(CurrentWorkSpace);
-        }
-
-        public void GoToPrevious()
-        {
-            CurrentWorkSpace = EnumerateCircular(CurrentWorkSpace, isInverse: true)
-                .FirstOrNone(ws => ws.HasOpenWindows)
-                .ValueOr(CurrentWorkSpace);
-
-            CurrentWorkSpace.Activate();
-            _whenWorkSpaceChanged.OnNext(CurrentWorkSpace);
-        }
-
-        private void HandleWorkSpaceCommand(WorkSpaceCommand command)
-        {
-            switch (command)
+        _workSpaces
+            .EnumerateBackwardFrom(currWorkSpace)
+            .Skip(1)
+            .Append(currWorkSpace)
+            .FirstOrNone(ws => ws.TryActivate())
+            .MatchSome(ws =>
             {
-                case WorkSpaceCommand.NextWorkSpace:
-                    GoToNext();
-                    break;
-                case WorkSpaceCommand.PrevWorkSpace:
-                    GoToPrevious();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(command), command, null);
-            }
-        }
+                LastWorkSpace = ws;
+                _whenWorkSpaceChanged.OnNext(ws);
+            });
+    }
 
-        private void UpdateCurrWorkSpace()
+    private WorkSpace GetCurrentWorkSpace()
+    {
+        return _desktopService
+            .GetForegroundWindow()
+            .SelectMany(window => _workSpaces
+                .EnumerateForwardFrom(LastWorkSpace)
+                .FirstOrNone(ws => ws.HasWindow(window)))
+            .ValueOr(LastWorkSpace);
+    }
+
+    private void HandleWorkSpaceCommand(WorkSpaceCommand command)
+    {
+        switch (command)
         {
-            CurrentWorkSpace = _workSpaces
-                .FirstOrNone(ws => ws.HasForegroundWindow)
-                .ValueOr(_workSpaces.First);
-
-            _whenWorkSpaceChanged.OnNext(CurrentWorkSpace);
+            case WorkSpaceCommand.NextWorkSpace:
+                GoToNext();
+                break;
+            case WorkSpaceCommand.PrevWorkSpace:
+                GoToPrevious();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(command), command, null);
         }
+    }
 
-        private void UpdateWorkSpaces(SwimConfig config, IDesktopService desktopService)
-        {
-            _workSpaces.Clear();
+    private void UpdateWorkSpaces(SwimConfig config, IDesktopService desktopService)
+    {
+        _workSpaces.Clear();
 
-            config
-                .GetConfig<WorkspaceManagerConfig>()
-                .MatchSome(moduleConfig => moduleConfig.Workspaces
-                    .Select(wsConfig => new WorkSpace(wsConfig, desktopService))
-                    .ForEach(_workSpaces.Add));
-        }
-
-        private IEnumerable<WorkSpace> EnumerateCircular(WorkSpace from, bool isInverse = false)
-        {
-            var startIndex = _workSpaces.IndexOf(from);
-            var step = isInverse ? -1 : 1;
-
-            for (int index = startIndex + step, count = 0; count < _workSpaces.Count; index += step, count++)
-            {
-                if (index < 0)
-                {
-                    index += _workSpaces.Count; // Correct the negative index
-                }
-
-                index %= _workSpaces.Count; // Ensure index is within the bounds
-                yield return _workSpaces[index];
-            }
-        }
+        config
+            .GetConfig<WorkspaceManagerConfig>()
+            .MatchSome(moduleConfig => moduleConfig.Workspaces
+                .Select(wsConfig => new WorkSpace(wsConfig, desktopService))
+                .ForEach(_workSpaces.Add));
     }
 }

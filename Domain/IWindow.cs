@@ -10,6 +10,7 @@ namespace Domain
         IObservable<Unit> WhenDestroyed { get; }
         
         string ProcessName { get; }
+        bool IsDestroyed { get; }
 
         string GetTitle();
         string GetClassName();

@@ -1,10 +1,9 @@
 ﻿using System.IO;
 using Optional;
 
-namespace Core.Configurations
+namespace Core.Configurations;
+
+public interface IConfigLocator
 {
-    public interface IConfigLocator
-    {
-        Option<Stream> FindConfig();
-    }
+    Option<Stream> FindConfig();
 }

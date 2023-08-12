@@ -1,71 +1,47 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Linq;
+﻿using System.Linq;
 using Core.Modules.WorkspaceModule.Configurations;
 using Domain;
-using Optional;
 using Optional.Collections;
-using Optional.Linq;
 using Utils;
 
-namespace Core.Modules.WorkspaceModule
+namespace Core.Modules.WorkspaceModule;
+
+public class WorkSpace
 {
-    public class WorkSpace
+    private readonly CircularList<TargetManager> _orderedTargets;
+
+    public WorkSpace(WorkspaceConfig wsConfig, IDesktopService desktopService)
     {
-        private readonly List<TargetWindow> _orderedTargets;
-        private readonly Dictionary<TargetWindow, List<ManagedWindow>> _targetToWindowList;
+        Name = wsConfig.Name;
 
-        public WorkSpace(WorkspaceConfig wsConfig, IDesktopService desktopService)
-        {
-            Name = wsConfig.Name;
+        _orderedTargets = new CircularList<TargetManager>();
+        wsConfig.Windows
+            .Select(t => new TargetManager(t, desktopService))
+            .ForEach(_orderedTargets.Add);
 
-            _orderedTargets = wsConfig.Windows.ToList();
-            _targetToWindowList = _orderedTargets.ToDictionary(x => x, _ => new List<ManagedWindow>());
+        LastTarget = _orderedTargets.First();
+    }
 
-            desktopService.WhenWindowCreated
-                .StartWith(desktopService.GetWindows())
-                .Subscribe(window => _orderedTargets
-                    .Where(target => target.IsMatch(window))
-                    .Select(target => new ManagedWindow(window, target))
-                    .ForEach(AddManagedWindow));
+    public string Name { get; }
 
-            desktopService.WhenForegroundWindowChanged
-                .Select(w => _orderedTargets.Any(t => t.IsMatch(w)))
-                .Subscribe(x => HasForegroundWindow = x);
+    private TargetManager LastTarget { get; set; }
 
-            CurrentWindow = Windows.FirstOrNone();
-        }
+    public bool TryActivate()
+    {
+        if (LastTarget.TryActivate())
+            return true;
 
-        public IEnumerable<ManagedWindow> Windows => _orderedTargets.SelectMany(t => _targetToWindowList[t]);
+        var newTarget = _orderedTargets
+            .EnumerateForwardFrom(LastTarget)
+            .FirstOrNone(t => t.TryActivate());
 
-        public string Name { get; }
+        newTarget.MatchSome(t => LastTarget = t);
 
-        public bool HasForegroundWindow { get; private set; }
-        public bool HasOpenWindows => Windows.Any();
-        public Option<ManagedWindow> CurrentWindow { get; private set; }
+        return newTarget.HasValue;
+    }
 
-        public void Activate()
-        {
-            CurrentWindow
-                .Select(mw => mw.Window)
-                .MatchSome(window =>
-                {
-                    window.SetForeground();
-                    window.Maximize();
-                });
-        }
-
-        private void AddManagedWindow(ManagedWindow managedWindow)
-        {
-            _targetToWindowList[managedWindow.Target].Add(managedWindow);
-            
-            managedWindow.WhenDestroyed.Subscribe(_ => RemoveManagedWindow(managedWindow));
-        }
-
-        private void RemoveManagedWindow(ManagedWindow managedWindow)
-        {
-            _targetToWindowList[managedWindow.Target].Remove(managedWindow);
-        }
+    public bool HasWindow(IWindow window)
+    {
+        return _orderedTargets.Any(t => t.Target.IsMatch(window));
     }
 }

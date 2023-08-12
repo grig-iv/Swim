@@ -15,10 +15,7 @@ namespace UIOverlay.ViewModels
                 .WhenWorkSpaceChanged
                 .ToPropertyEx(this, x => x.CurrentWorkSpaceConfig);
 
-            Observable
-                .Merge(
-                    workSpaceManager.WhenWorkSpaceChanged.Select(_ => Unit.Default),
-                    workSpaceManager.WhenWindowChanged.Select(_ => Unit.Default))
+            workSpaceManager.WhenWorkSpaceChanged
                 .Select(_ => Observable
                     .Return(true)
                     .Concat(Observable.Return(false).Delay(TimeSpan.FromSeconds(2))))

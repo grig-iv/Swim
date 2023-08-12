@@ -31,6 +31,7 @@ namespace Domain
         public IObservable<Unit> WhenDestroyed => _whenDestroyed.AsObservable();
 
         public string ProcessName => _lazyProcess.Value.ProcessName;
+        public bool IsDestroyed { get; private set; }
         internal HWND Handle { get; }
 
         public string GetTitle()
@@ -112,6 +113,8 @@ namespace Domain
 
         internal void OnDestroy()
         {
+            IsDestroyed = true;
+            
             _whenDestroyed.OnNext(Unit.Default);
             _whenDestroyed.OnCompleted();
             _whenDestroyed.Dispose();

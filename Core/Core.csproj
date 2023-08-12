@@ -93,10 +93,11 @@
         <Compile Include="Configurations\ModifierKeysConverter.cs" />
         <Compile Include="Configurations\SwimConfig.cs" />
         <Compile Include="EventSystem\UserEventPublisher.cs" />
-        <Compile Include="Modules\WorkspaceModule\Configurations\TargetWindow.cs" />
+        <Compile Include="Modules\WorkspaceModule\Configurations\Target.cs" />
         <Compile Include="Modules\WorkspaceModule\Configurations\WorkspaceConfig.cs" />
         <Compile Include="Modules\WorkspaceModule\Configurations\WorkspaceManagerConfig.cs" />
         <Compile Include="Modules\WorkspaceModule\ManagedWindow.cs" />
+        <Compile Include="Modules\WorkspaceModule\TargetManager.cs" />
         <Compile Include="Modules\WorkspaceModule\WorkSpace.cs" />
         <Compile Include="Modules\WorkspaceModule\WorkSpaceCommand.cs" />
         <Compile Include="Modules\WorkspaceModule\WorkSpaceManager.cs" />

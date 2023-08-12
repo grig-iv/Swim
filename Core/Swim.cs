@@ -7,31 +7,30 @@ using Domain;
 using Microsoft.Extensions.DependencyInjection;
 using Optional;
 
-namespace Core
+namespace Core;
+
+public class Swim
 {
-    public class Swim
+
+    public Swim()
     {
+    }
 
-        public Swim()
-        {
-        }
-
-        public static void RegisterServices(IServiceCollection services)
-        {
-            services
-                .AddSingleton<Swim>()
-                .AddSingleton<IDesktopService, DesktopService>()
-                .AddSingleton<IConfigProvider, ConfigLoader>()
-                .AddSingleton<IConfigLocator, ConfigLocator>()
-                .AddSingleton<IUserEventPublisher, UserEventPublisher>()
+    public static void RegisterServices(IServiceCollection services)
+    {
+        services
+            .AddSingleton<Swim>()
+            .AddSingleton<IDesktopService, DesktopService>()
+            .AddSingleton<IConfigProvider, ConfigLoader>()
+            .AddSingleton<IConfigLocator, ConfigLocator>()
+            .AddSingleton<IUserEventPublisher, UserEventPublisher>()
                 
-                //modules
-                .AddSingleton<WorkSpaceManager>();
-        }
+            //modules
+            .AddSingleton<WorkSpaceManager>();
+    }
 
-        public Option<TModule> GetModule<TModule>()
-        {
-            throw new Exception();
-        }
+    public Option<TModule> GetModule<TModule>()
+    {
+        throw new Exception();
     }
 }

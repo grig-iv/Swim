@@ -1,21 +1,21 @@
-﻿using System;
-using System.Reactive;
-using Core.Modules.WorkspaceModule.Configurations;
-using Domain;
+﻿using Domain;
 
-namespace Core.Modules.WorkspaceModule
+namespace Core.Modules.WorkspaceModule;
+
+public class ManagedWindow
 {
-    public class ManagedWindow
-    {
-        public ManagedWindow(IWindow window, TargetWindow target)
-        {
-            Window = window;
-            Target = target;
-        }
+    private readonly IWindow _window;
 
-        public IObservable<Unit> WhenDestroyed => Window.WhenDestroyed;
-        
-        public TargetWindow Target { get; }
-        public IWindow Window { get; }
+    public ManagedWindow(IWindow window)
+    {
+        _window = window;
+    }
+
+    public bool IsDestroyed => _window.IsDestroyed;
+
+    public void Focus()
+    {
+        _window.SetForeground();
+        _window.Maximize();
     }
 }

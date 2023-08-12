@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reactive.Linq;
+using System.Linq;
 using System.Reactive.Subjects;
 using Domain.WinHook;
 using Optional;
@@ -32,14 +32,11 @@ namespace Domain
             InitWindows();
         }
 
-        public IObservable<IWindow> WhenWindowCreated => _whenWindowCreated.AsObservable();
-        public IObservable<IWindow> WhenForegroundWindowChanged => _whenForegroundWindowChanged.AsObservable();
-
         public IEnumerable<IWindow> GetWindows()
         {
             lock (_lock)
             {
-                return _windows.Values;
+                return _windows.Values.Where(IsTopLevelDesktopWindow);
             }
         }
 
@@ -74,9 +71,6 @@ namespace Domain
             {
                 _windows[handle] = window;
             }
-
-            if (IsTopLevelDesktopWindow(window))
-                _whenWindowCreated.OnNext(window);
         }
 
         private void WindowDestroyed(HWND handle)

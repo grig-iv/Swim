@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Core.Services
+namespace Core.Services;
+
+public interface IUserEventPublisher : IObservable<object>
 {
-    public interface IUserEventPublisher : IObservable<object>
-    {
         
-    }
 }

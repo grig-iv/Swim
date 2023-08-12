@@ -1,10 +1,9 @@
 ﻿using System;
 
-namespace Core.Configurations
+namespace Core.Configurations;
+
+public interface IConfigProvider
 {
-    public interface IConfigProvider
-    {
-        IObservable<SwimConfig> WhenConfigChanged { get; }
-        SwimConfig Config { get; }
-    }
+    IObservable<SwimConfig> WhenConfigChanged { get; }
+    SwimConfig Config { get; }
 }

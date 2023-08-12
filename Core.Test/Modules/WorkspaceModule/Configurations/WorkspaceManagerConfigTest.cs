@@ -38,15 +38,15 @@ WorkspaceManager:
                     new WorkspaceConfig
                     {
                         Name = "WEB",
-                        Windows = new[] {new TargetWindow {Process = "firefox"}}
+                        Windows = new[] {new Target {Process = "firefox"}}
                     },
                     new WorkspaceConfig
                     {
                         Name = "DEV",
                         Windows = new[]
                         {
-                            new TargetWindow {Process = "rider64"},
-                            new TargetWindow {Process = "code"}
+                            new Target {Process = "rider64"},
+                            new Target {Process = "code"}
                         }
                     },
                 },
