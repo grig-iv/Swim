@@ -98,6 +98,7 @@
         <Compile Include="Modules\WorkspaceModule\Configurations\WorkspaceManagerConfig.cs" />
         <Compile Include="Modules\WorkspaceModule\ManagedWindow.cs" />
         <Compile Include="Modules\WorkspaceModule\TargetManager.cs" />
+        <Compile Include="Modules\WorkspaceModule\WindowExtension.cs" />
         <Compile Include="Modules\WorkspaceModule\Workspace.cs" />
         <Compile Include="Modules\WorkspaceModule\WorkspaceCommand.cs" />
         <Compile Include="Modules\WorkspaceModule\WorkspaceManager.cs" />

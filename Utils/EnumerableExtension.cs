@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Utils;
 
@@ -10,6 +12,15 @@ public static class EnumerableExtension
         foreach (var item in enumerable)
         {
             action.Invoke(item);
+        }
+    }
+
+    public static IEnumerable<T> Do<T>(this IEnumerable<T> enumerable, Action<T> action)
+    {
+        foreach (var item in enumerable)
+        {
+            action.Invoke(item);
+            yield return item;
         }
     }
 }

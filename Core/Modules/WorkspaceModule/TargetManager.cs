@@ -23,23 +23,7 @@ public class TargetManager
             .GetWindows()
             .FirstOrNone(Target.IsMatch);
 
-        maybeWindow.MatchSome(window =>
-        {
-            window.SetForeground();
-            switch (window.GetState())
-            {
-                case WindowState.Minimized:
-                    window.Restore();
-                    break;
-                case WindowState.Maximized:
-                    window.Maximize();
-                    break;
-                case WindowState.Normal:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        });
+        maybeWindow.MatchSome(w => w.Focus());
 
         return maybeWindow.HasValue;
     }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Utils;
@@ -12,20 +13,10 @@ public class CircularList<T> : IList<T>
         _list = new List<T>();
     }
 
-    public IEnumerable<T> EnumerateForwardFrom(T from)
-    {
-        return EnumerateFrom(from, true);
-    }
-
-    public IEnumerable<T> EnumerateBackwardFrom(T from)
-    {
-        return EnumerateFrom(from, false);
-    }
-
-    private IEnumerable<T> EnumerateFrom(T from, bool forward)
+    public IEnumerable<T> CycleFrom(T from, CycleDirection direction = CycleDirection.Forward)
     {
         var startIndex = _list.IndexOf(from);
-        var step = forward ? 1 : -1;
+        var step = direction == CycleDirection.Forward ? 1 : -1;
 
         for (int index = startIndex, count = 0; count < _list.Count; index += step, count++)
         {

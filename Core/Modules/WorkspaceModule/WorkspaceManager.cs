@@ -6,6 +6,7 @@ using Core.Configurations;
 using Core.Modules.WorkspaceModule.Configurations;
 using Core.Services;
 using Domain;
+using Optional;
 using Optional.Collections;
 using Optional.Linq;
 using Utils;
@@ -39,12 +40,12 @@ public class WorkspaceManager
 
     private Workspace LastWorkspace { get; set; }
 
-    private void GoToNextWorkspace()
+    private void CycleWorkspaces(CycleDirection direction)
     {
-        var currWorkSpace = GetCurrentWorkspace();
+        var currWorkSpace = GetCurrentWorkspace().ValueOr(LastWorkspace);
 
         _workspaces
-            .EnumerateForwardFrom(currWorkSpace)
+            .CycleFrom(currWorkSpace, direction)
             .Skip(1)
             .Append(currWorkSpace)
             .FirstOrNone(ws => ws.TryActivate())
@@ -55,30 +56,18 @@ public class WorkspaceManager
             });
     }
 
-    private void GoToPrevWorkspace()
+    private void CycleWindows(CycleDirection direction)
     {
-        var currWorkSpace = GetCurrentWorkspace();
-
-        _workspaces
-            .EnumerateBackwardFrom(currWorkSpace)
-            .Skip(1)
-            .Append(currWorkSpace)
-            .FirstOrNone(ws => ws.TryActivate())
-            .MatchSome(ws =>
-            {
-                LastWorkspace = ws;
-                _whenWorkspaceChanged.OnNext(ws);
-            });
+        GetCurrentWorkspace().MatchSome(ws => ws.CycleWindows(direction));
     }
 
-    private Workspace GetCurrentWorkspace()
+    private Option<Workspace> GetCurrentWorkspace()
     {
         return _desktopService
             .GetForegroundWindow()
             .SelectMany(window => _workspaces
-                .EnumerateForwardFrom(LastWorkspace)
-                .FirstOrNone(ws => ws.HasWindow(window)))
-            .ValueOr(LastWorkspace);
+                .CycleFrom(LastWorkspace)
+                .FirstOrNone(ws => ws.HasWindow(window)));
     }
 
     private void HandleCommand(WorkspaceCommand command)
@@ -86,10 +75,16 @@ public class WorkspaceManager
         switch (command)
         {
             case WorkspaceCommand.NextWorkspace:
-                GoToNextWorkspace();
+                CycleWorkspaces(CycleDirection.Forward);
                 break;
             case WorkspaceCommand.PrevWorkspace:
-                GoToPrevWorkspace();
+                CycleWorkspaces(CycleDirection.Backward);
+                break;
+            case WorkspaceCommand.NextWindow:
+                CycleWindows(CycleDirection.Forward);
+                break;
+            case WorkspaceCommand.PrevWindow:
+                CycleWindows(CycleDirection.Backward);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(command), command, null);

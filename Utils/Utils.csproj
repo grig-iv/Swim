@@ -40,6 +40,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="CircularList.cs" />
+        <Compile Include="CycleDirection.cs" />
         <Compile Include="EnumerableExtension.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
