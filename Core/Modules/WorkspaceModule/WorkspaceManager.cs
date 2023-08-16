@@ -64,7 +64,7 @@ public class WorkspaceManager
     private Option<Workspace> GetCurrentWorkspace()
     {
         return _desktopService
-            .GetForegroundWindow()
+            .GetForegroundWindowOrNone()
             .SelectMany(window => _workspaces
                 .CycleFrom(LastWorkspace)
                 .FirstOrNone(ws => ws.HasWindow(window)));

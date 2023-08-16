@@ -40,7 +40,7 @@ public class DesktopService : IDesktopService
         }
     }
 
-    public Option<IWindow> GetForegroundWindow()
+    public Option<IWindow> GetForegroundWindowOrNone()
     {
         return User32.GetForegroundWindow()
             .SomeWhen(hwnd => !hwnd.IsNull)

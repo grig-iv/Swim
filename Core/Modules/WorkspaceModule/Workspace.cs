@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using Core.Modules.WorkspaceModule.Configurations;
 using Domain;
 using Optional;
@@ -9,6 +11,7 @@ using Utils;
 
 namespace Core.Modules.WorkspaceModule;
 
+[DebuggerDisplay("{Name}")]
 public class Workspace
 {
     private readonly IDesktopService _desktopService;
@@ -30,6 +33,7 @@ public class Workspace
     public string Name { get; }
 
     private TargetManager LastTarget { get; set; }
+    private Option<IWindow> MaybeLastWindow { get; set; }
 
     public bool TryActivate()
     {
@@ -47,30 +51,83 @@ public class Workspace
 
     public bool HasWindow(IWindow window)
     {
-        return _orderedTargets.Any(t => t.Target.IsMatch(window));
+        return _orderedTargets.Any(t => t.IsMatch(window));
     }
 
     public void CycleWindows(CycleDirection direction)
     {
-        var maybeForegroundWindow = _desktopService.GetForegroundWindow();
-        if (!maybeForegroundWindow.HasValue)
+        /*
+         * find current target
+         * if target has next windows for cycling then activate that windows
+         * else get first cycle target with windows and activate windows on it
+         * activated target goes to last target
+         */
+
+        var foregroundWindow = _desktopService
+            .GetForegroundWindowOrNone()
+            .ValueOrDefault();
+        if (foregroundWindow == null)
+        {
+            TryActivate();
+            MaybeLastWindow = _desktopService.GetForegroundWindowOrNone();
+            return;
+        }
+
+        var currTarget = _orderedTargets
+            .CycleFrom(LastTarget, direction)
+            .FirstOrNone(target => target.IsMatch(foregroundWindow))
+            .ValueOrDefault();
+        if (currTarget == null)
             return;
 
-        var firstWindow = default(IWindow);
-        var windows = _desktopService.GetWindows();
-        var foregroundWindow = maybeForegroundWindow.ValueOrFailure();
-
-        if (direction == CycleDirection.Backward)
-            windows = windows.Reverse();
-
-        _orderedTargets
-            .CycleFrom(LastTarget)
-            .SelectMany(target => windows.Where(target.Target.IsMatch))
-            .Do(window => firstWindow ??= window)
-            .SkipWhile(window => !window.Equals(foregroundWindow))
+        var windows = _desktopService.GetWindows().ToList();
+        var targetWindows = GetTargetWindows(currTarget, windows, direction);
+        var maybeNextWindow = targetWindows
+            .SkipWhile(w => !w.Equals(foregroundWindow))
             .Skip(1)
-            .FirstOrNone()
-            .ValueOr(firstWindow)
-            .Focus();
+            .FirstOrNone();
+
+        maybeNextWindow.Match(
+            nextWindow =>
+            {
+                LastTarget = currTarget;
+                MaybeLastWindow = Option.Some(nextWindow);
+                nextWindow.Focus();
+            },
+            () => _orderedTargets
+                .CycleFrom(currTarget, direction)
+                .Skip(1)
+                .SkipWhile(t =>
+                {
+                    var maybeWindow = GetTargetWindows(t, windows, direction).FirstOrNone();
+                    
+                    maybeWindow.MatchSome(w =>
+                    {
+                        LastTarget = t;
+                        MaybeLastWindow = Option.Some(w);
+                        w.Focus();
+                    });
+
+                    return !maybeWindow.HasValue;
+                })
+                .FirstOrNone()
+                .MatchNone(() =>
+                {
+                    MaybeLastWindow = Option.None<IWindow>();
+                })
+        );
+    }
+
+    private IEnumerable<IWindow> GetTargetWindows(
+        TargetManager target,
+        IEnumerable<IWindow> windows,
+        CycleDirection direction)
+    {
+        if (direction == CycleDirection.Forward)
+            return windows.Where(target.IsMatch);
+
+        return windows
+            .Where(target.IsMatch)
+            .Reverse();
     }
 }

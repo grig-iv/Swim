@@ -8,23 +8,27 @@ namespace Core.Modules.WorkspaceModule;
 public class TargetManager
 {
     private readonly IDesktopService _desktopService;
+    private readonly Target _target;
 
     public TargetManager(Target target, IDesktopService desktopService)
     {
         _desktopService = desktopService;
-        Target = target;
+        _target = target;
     }
-
-    public Target Target { get; }
 
     public bool TryActivate()
     {
         var maybeWindow = _desktopService
             .GetWindows()
-            .FirstOrNone(Target.IsMatch);
+            .FirstOrNone(_target.IsMatch);
 
         maybeWindow.MatchSome(w => w.Focus());
 
         return maybeWindow.HasValue;
     }
+
+    public bool IsMatch(IWindow window)
+    {
+        return _target.IsMatch(window);
+    } 
 }

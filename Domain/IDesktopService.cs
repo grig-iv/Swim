@@ -7,5 +7,5 @@ namespace Domain;
 public interface IDesktopService : IDisposable
 {
     IEnumerable<IWindow> GetWindows();
-    Option<IWindow> GetForegroundWindow();
+    Option<IWindow> GetForegroundWindowOrNone();
 }
