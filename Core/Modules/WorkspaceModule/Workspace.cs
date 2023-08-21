@@ -37,6 +37,16 @@ public class Workspace
 
     public bool TryActivate()
     {
+        var lastWindow = MaybeLastWindow
+            .Where(w => !w.IsDestroyed)
+            .ValueOrDefault();
+        if (lastWindow != null)
+        {
+            lastWindow.Focus();
+            return true;
+        }
+            
+        
         if (LastTarget.TryActivate())
             return true;
 
