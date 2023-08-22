@@ -1,15 +1,8 @@
 ﻿using System;
 using System.Windows.Input;
+using Core.Services;
 
 namespace Core.Configurations;
-
-public class KeyBinding<TCommand> : KeyBinding
-    where TCommand : Enum
-{
-    public TCommand Command { get; set; }
-
-    public override object GetCommand() => Command;
-}
 
 public abstract class KeyBinding
 {
@@ -18,4 +11,18 @@ public abstract class KeyBinding
     public string Args { get; set; }
 
     public abstract object GetCommand();
+    public abstract UserCommand GetUserCommand();
+}
+
+public class KeyBinding<TCommand> : KeyBinding
+    where TCommand : Enum
+{
+    public TCommand Command { get; set; }
+
+    public override object GetCommand() => Command;
+    
+    public override UserCommand GetUserCommand()
+    {
+        return new UserCommand<TCommand>(Command, Args);
+    }
 }

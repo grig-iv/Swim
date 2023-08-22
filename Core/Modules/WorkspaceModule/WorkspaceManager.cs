@@ -32,7 +32,7 @@ public class WorkspaceManager
         configProvider.WhenConfigChanged.Subscribe(config => UpdateWorkspaces(config, desktopService));
 
         userEventPublisher
-            .OfType<WorkspaceCommand>()
+            .OfType<UserCommand<WorkspaceCommand>>()
             .Subscribe(HandleCommand);
     }
 
@@ -70,15 +70,34 @@ public class WorkspaceManager
                 .FirstOrNone(ws => ws.HasWindow(window)));
     }
 
-    private void HandleCommand(WorkspaceCommand command)
+    private void GoToWorkspace(string workspaceId)
     {
-        switch (command)
+        var isWsIndex = int.TryParse(workspaceId, out var wsIndex);
+        if (isWsIndex)
+        {
+            _workspaces
+                .ElementAtOrNone(wsIndex - 1)
+                .MatchSome(ws => ws.TryActivate());
+            return;
+        }
+        
+        _workspaces
+            .FirstOrNone(w => string.Equals(w.Name, workspaceId, StringComparison.InvariantCultureIgnoreCase))
+            .MatchSome(ws => ws.TryActivate());
+    }
+
+    private void HandleCommand(UserCommand<WorkspaceCommand> userCommand)
+    {
+        switch (userCommand.Command)
         {
             case WorkspaceCommand.NextWorkspace:
                 CycleWorkspaces(CycleDirection.Forward);
                 break;
             case WorkspaceCommand.PrevWorkspace:
                 CycleWorkspaces(CycleDirection.Backward);
+                break;
+            case WorkspaceCommand.GoToWorkspace:
+                GoToWorkspace(userCommand.Args);
                 break;
             case WorkspaceCommand.NextWindow:
                 CycleWindows(CycleDirection.Forward);
@@ -87,7 +106,7 @@ public class WorkspaceManager
                 CycleWindows(CycleDirection.Backward);
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(command), command, null);
+                throw new ArgumentOutOfRangeException(nameof(userCommand), userCommand, null);
         }
     }
 

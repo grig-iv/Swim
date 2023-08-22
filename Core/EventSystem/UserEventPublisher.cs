@@ -12,18 +12,18 @@ namespace Core.EventSystem;
 
 public class UserEventPublisher : IUserEventPublisher
 {
-    private readonly Subject<object> _whenHotKeyFired;
+    private readonly Subject<UserCommand> _whenHotKeyFired;
     private readonly HotkeyManager _hotkeyManager;
 
     public UserEventPublisher(IConfigProvider configProvider)
     {
-        _whenHotKeyFired = new Subject<object>();
+        _whenHotKeyFired = new Subject<UserCommand>();
         _hotkeyManager = HotkeyManager.Current;
 
         configProvider.WhenConfigChanged.Subscribe(UpdateKeybinding);
     }
 
-    public IDisposable Subscribe(IObserver<object> observer)
+    public IDisposable Subscribe(IObserver<UserCommand> observer)
     {
         return _whenHotKeyFired.Subscribe(observer);
     }
@@ -46,13 +46,13 @@ public class UserEventPublisher : IUserEventPublisher
     {
         var command = keyBinding.GetCommand();
         var fullEnumName = command.GetType().FullName; 
-        var fullCommandName = $"{fullEnumName}.{command}"; 
+        var fullCommandName = $"{fullEnumName}.{command}.{keyBinding.Args}"; 
 
         _hotkeyManager.AddOrReplace(
             fullCommandName,
             keyBinding.Key,
             keyBinding.Mods,
-            (_, _) => _whenHotKeyFired.OnNext(command)
+            (_, _) => _whenHotKeyFired.OnNext(keyBinding.GetUserCommand())
         );
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Core.Services;
 
-public interface IUserEventPublisher : IObservable<object>
+public interface IUserEventPublisher : IObservable<UserCommand>
 {
-        
 }

@@ -4,6 +4,7 @@ public enum WorkspaceCommand
 {
     NextWorkspace,
     PrevWorkspace,
+    GoToWorkspace,
     NextWindow,
     PrevWindow,
 }
